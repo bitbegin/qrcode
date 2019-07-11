@@ -22,9 +22,7 @@ qrcode: context [
 		{11101100}
 		{00010001}
 	]
-	version-base: 21x21
-	version-step: 4x4
-	version-end: 40
+
 	VERSION_MIN: 1
 	VERSION_MAX: 40
 	REED_SOLOMON_DEGREE_MAX: 30
@@ -32,11 +30,6 @@ qrcode: context [
 		len: buffer-len? VERSION_MAX
 		res: make binary! len
 		append/dup res 0 len
-	]
-
-	get-version-size: function [version [integer!]][
-		if version > version-end [return none]
-		(version - 1) * version-step + version-base
 	]
 
 	error-group: [
