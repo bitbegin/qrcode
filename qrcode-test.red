@@ -121,17 +121,37 @@ either error? e: try [testCalcReedSolomonRemainder][
 	print "testCalcReedSolomonRemainder ok"
 ]
 
+encode-and-build: function [
+	str				[string! binary!]
+	ecl				[word!]
+	min-version		[integer!]
+	max-version		[integer!]
+	mask			[integer!]
+	boost-ecl?		[logic!]
+][
+	unless seg: qrcode/encode-data str max-version [
+		return none
+	]
+	segs: reduce [seg]
+	sinfo: qrcode/get-segments-info segs ecl min-version max-version boost-ecl?
+	version: sinfo/version
+	ecl: sinfo/ecl
+	unless data-str: qrcode/build-data-code-words segs sinfo/used-bits version sinfo/cap-bytes [
+		return none
+	]
+	data-str
+]
+
 testEncodeData: function [][
-	set 'test-mode pick [none encode ecc] 2
-	r: qrcode/encode-data data: "01234567" 'H 1 40 1 no
+	r: encode-and-build data: "01234567" 'H 1 40 1 no
 	unless r = c: "000100000010000000001100010101100110000110000000111011000001000111101100" [
 		new-error 'testEncodeData data reduce [r c]
 	]
-	r: qrcode/encode-data data: "AC-42" 'H 1 40 1 no
+	r: encode-and-build data: "AC-42" 'H 1 40 1 no
 	unless r = c: "001000000010100111001110111001110010000100000000111011000001000111101100" [
 		new-error 'testEncodeData data reduce [r c]
 	]
-	r: qrcode/encode-data data: "HELLO WORLD" 'Q 1 40 1 no
+	r: encode-and-build data: "HELLO WORLD" 'Q 1 40 1 no
 	unless r = c: "00100000010110110000101101111000110100010111001011011100010011010100001101000000111011000001000111101100" [
 		new-error 'testEncodeData data reduce [r c]
 	]
@@ -145,11 +165,11 @@ either error? e: try [testEncodeData][
 	print "testEncodeData ok"
 ]
 
-
 testEcc: function [][
 	d: "0100001101010101010001101000011001010111001001100101010111000010011101110011001000000110000100100000011001100111001001101111011011110110010000100000011101110110100001101111001000000111001001100101011000010110110001101100011110010010000001101011011011100110111101110111011100110010000001110111011010000110010101110010011001010010000001101000011010010111001100100000011101000110111101110111011001010110110000100000011010010111001100100001000011101100000100011110110000010001111011000001000111101100"
 	h: debase/base d 2
-	result: qrcode/encode-ecc h 5 'Q
+	vinfo: qrcode/get-version-info 5 'Q
+	result: qrcode/build-code-words-with-ecc h vinfo/modules-bits vinfo/num-blocks vinfo/block-ecc-bytes vinfo/cap-bytes
 	ri: [67 246 182 70 85 246 230 247 70 66 247 118 134 7 119 86 87 118 50 194 38 134 7 6 85 242 118 151 194 7 134 50 119 38 87 16 50 86 38 236 6 22 82 17 18 198 6 236 6 199 134 17 103 146 151 236 38 6 50 17 7 236 213 87 148 235 199 204 116 159 11 96 177 5 45 60 212 173 115 202 76 24 247 182 133 147 241 124 75 59 223 157 242 33 229 200 238 106 248 134 76 40 154 27 195 255 117 129 230 172 154 209 189 82 111 17 10 2 86 163 108 131 161 163 240 32 111 120 192 178 39 133 141 236]
 	len: length? ri
 	rb: make binary! len
@@ -170,3 +190,4 @@ either error? e: try [testEcc][
 ][
 	print "testEcc ok"
 ]
+

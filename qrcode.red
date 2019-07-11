@@ -196,11 +196,7 @@ qrcode: context [
 
 	encode-data: function [
 		str				[string! binary!]
-		ecl				[word!]
-		min-version		[integer!]
 		max-version		[integer!]
-		mask			[integer!]
-		boost-ecl?		[logic!]
 	][
 		either string? str [
 			bin: to binary! str
@@ -233,15 +229,30 @@ qrcode: context [
 				]
 			]
 		]
-		encode-segments reduce [seg] ecl min-version max-version mask boost-ecl?
+		seg
 	]
 
-	encode-segments: function [
+	get-version-info: function [
+		version			[integer!]
+		ecl				[word!]
+	][
+		num-blocks: pick NUM_ERROR_CORRECTION_BLOCKS/(ecl) version
+		block-ecc-bytes: pick ECC_CODEWORDS_PER_BLOCK/(ecl) version
+		modules-bits: get-data-modules-bits version
+		cap-bytes: modules-bits / 8 - (num-blocks * block-ecc-bytes)
+		reduce [
+			'num-blocks num-blocks
+			'block-ecc-bytes block-ecc-bytes
+			'modules-bits modules-bits
+			'cap-bytes cap-bytes
+		]
+	]
+
+	get-segments-info: function [
 		segs			[block!]
 		ecl				[word!]
 		min-version		[integer!]
 		max-version		[integer!]
-		mask			[integer!]
 		boost-ecl?		[logic!]
 	][
 		unless all [
@@ -250,11 +261,6 @@ qrcode: context [
 			max-version <= VERSION_MAX
 		][return none]
 		unless find error-group ecl [return none]
-		unless all [
-			mask >= -1
-			mask <= 7
-		][return none]
-
 		version: min-version
 		forever [
 			cap-bits: 8 * get-data-code-words-bytes version ecl
@@ -276,13 +282,39 @@ qrcode: context [
 				]
 			]
 		]
-		unless qrcode: encode-padding segs used-bits version ecl [
+		res: reduce [
+			'version version
+			'ecl ecl
+			'segments segs
+			'used-bits used-bits
+		]
+		append res get-version-info version ecl
+		res
+	]
+
+	encode-segments: function [
+		segs			[block!]
+		ecl				[word!]
+		min-version		[integer!]
+		max-version		[integer!]
+		mask			[integer!]
+		boost-ecl?		[logic!]
+	][
+		unless all [
+			mask >= -1
+			mask <= 7
+		][return none]
+
+		sinfo: get-segments-info segs ecl min-version max-version boost-ecl?
+		version: sinfo/version
+		ecl: sinfo/ecl
+		unless data-str: build-data-code-words segs sinfo/used-bits version sinfo/cap-bytes [
 			return none
 		]
-		if test-mode = 'encode [return qrcode]
-		qrcode: debase/base qrcode 2
-		code-words: encode-ecc qrcode version ecl
-		if test-mode = 'ecc [return code-words]
+		data-bin: debase/base data-str 2
+		unless code-words: build-code-words-with-ecc data-bin sinfo/modules-bits sinfo/num-blocks sinfo/block-ecc-bytes sinfo/cap-bytes [
+			return none
+		]
 
 		;now start to draw
 		img: init-func-modules version
@@ -314,11 +346,11 @@ qrcode: context [
 		img
 	]
 
-	encode-padding: function [
+	build-data-code-words: function [
 		segs			[block!]
 		used-bits		[integer!]
 		version			[integer!]
-		ecl				[word!]
+		cap-bytes		[integer!]
 	][
 		res: make string! 200
 		forall segs [
@@ -337,8 +369,7 @@ qrcode: context [
 			]
 		]
 		if used-bits <> (bit-len: length? res) [return none]
-		cap-bytes: get-data-code-words-bytes version ecl
-		cap-bits: 8 * cap-bytes
+		cap-bits: cap-bytes * 8
 		if bit-len > cap-bits [return none]
 		if 4 < terminator-bits: cap-bits - bit-len [
 			terminator-bits: 4
@@ -366,21 +397,20 @@ qrcode: context [
 		res
 	]
 
-	encode-ecc: function [
+	build-code-words-with-ecc: function [
 		data			[binary!]
-		version			[integer!]
-		ecl				[word!]
+		modules-bits	[integer!]
+		num-blocks		[integer!]
+		block-ecc-bytes	[integer!]
+		cap-bytes		[integer!]
 	][
-		num-blocks: pick NUM_ERROR_CORRECTION_BLOCKS/(ecl) version
-		block-ecc-len: pick ECC_CODEWORDS_PER_BLOCK/(ecl) version
-		raw-code-words: (get-data-modules-bits version) / 8
-		data-len: get-data-code-words-bytes version ecl
-		num-short-blocks: num-blocks - (raw-code-words % num-blocks)
-		short-block-data-len: raw-code-words / num-blocks - block-ecc-len
-		res: make binary! raw-code-words
-		append/dup res 0 raw-code-words
+		modules-bytes: modules-bits / 8
+		num-short-blocks: num-blocks - (modules-bytes % num-blocks)
+		short-block-data-len: modules-bytes / num-blocks - block-ecc-bytes
+		res: make binary! modules-bytes
+		append/dup res 0 modules-bytes
 
-		generator: calc-reed-solomon-generator block-ecc-len
+		generator: calc-reed-solomon-generator block-ecc-bytes
 		dat: data
 		i: 1
 		while [i <= num-blocks][
@@ -395,8 +425,8 @@ qrcode: context [
 				j: j + 1
 				k: k + num-blocks
 			]
-			j: 1 k: data-len + i
-			while [j <= block-ecc-len][
+			j: 1 k: cap-bytes + i
+			while [j <= block-ecc-bytes][
 				res/(k): ecc/(j)
 				j: j + 1
 				k: k + num-blocks
@@ -990,11 +1020,3 @@ qrcode: context [
 		make image! reduce [to pair! reduce [qrsize * scale qrsize * scale] bin]
 	]
 ]
-
-set 'test-mode pick [none encode ecc] 1
-start: now/time/precise
-img: qrcode/encode-data data: "bitcoin:n4d8tkDrhF7PcDTPSuUckT927GHonewV7T" 'H 1 40 -1 no
-test-image: qrcode/to-image img 4
-end: now/time/precise
-print [start end]
-view [image test-image]
