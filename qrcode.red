@@ -315,11 +315,11 @@ qrcode: context [
 		unless code-words: build-code-words-with-ecc data-bin sinfo/modules-bits sinfo/num-blocks sinfo/block-ecc-bytes sinfo/cap-bytes [
 			return none
 		]
+		code-words-str: enbase/base code-words 2
 
 		;now start to draw
 		img: init-func-modules version
-		;draw-code-words code-words (get-data-modules-bits version) / 8 img
-		draw-code-words code-words img
+		draw-code-words code-words-str img
 		draw-white-func-modules img version
 		mask-img: init-func-modules version
 		if mask = -1 [
@@ -550,10 +550,10 @@ qrcode: context [
 
 	init-func-modules: function [version [integer!]][
 		qrsize: version * 4 + 17
-		len: qrsize * qrsize + 7 / 8 + 1
-		img: make binary! len
-		append/dup img 0 len
-		img/1: qrsize
+		len: qrsize * qrsize
+		data: make string! len
+		append/dup data "0" len
+		img: reduce [qrsize data]
 
 		;-- timing patterns
 		fill-rect 6 0 1 qrsize img
@@ -599,29 +599,25 @@ qrcode: context [
 		img
 	]
 
-	get-module: function [img [binary!] x [integer!] y [integer!]][
+	get-module: function [img [block!] x [integer!] y [integer!]][
 		qrsize: img/1
-		index: y * qrsize + x
-		get-bit img/(index >> 3 + 1 + 1) index and 7
+		data: img/2
+		index: y * qrsize + x + 1
+		data/(index) = #"1"
 	]
 
 	get-bit: function [x [integer!] i [integer!]][
 		(x >> i and 1) <> 0
 	]
 
-	set-module: function [img [binary!] x [integer!] y [integer!] black? [logic!]][
+	set-module: function [img [block!] x [integer!] y [integer!] black? [logic!]][
 		qrsize: img/1
-		index: y * qrsize + x
-		bit-index: index and 7
-		byte-index: index >> 3 + 1
-		either black? [
-			img/(byte-index + 1): img/(byte-index + 1) or (1 << bit-index)
-		][
-			img/(byte-index + 1): img/(byte-index + 1) and (1 << bit-index xor FFh)
-		]
+		data: img/2
+		index: y * qrsize + x + 1
+		data/(index): either black? [#"1"][#"0"]
 	]
 
-	set-module-bounded: function [img [binary!] x [integer!] y [integer!] black? [logic!]][
+	set-module-bounded: function [img [block!] x [integer!] y [integer!] black? [logic!]][
 		qrsize: img/1
 		if all [
 			x >= 0
@@ -638,7 +634,7 @@ qrcode: context [
 		top				[integer!]
 		width			[integer!]
 		heigth			[integer!]
-		img				[binary!]
+		img				[block!]
 	][
 		dy: 0
 		while [dy < heigth][
@@ -670,9 +666,9 @@ qrcode: context [
 		res
 	]
 
-	draw-code-words: function [data [binary!] img [binary!]][
+	draw-code-words: function [code-words [string!] img [block!]][
 		qrsize: img/1
-		len: length? data
+		len: length? code-words
 		i: 0
 		right: qrsize - 1
 		while [right >= 1][
@@ -688,8 +684,7 @@ qrcode: context [
 						not get-module img x y
 						i < (len * 8)
 					][
-						black?: get-bit data/(i >> 3 + 1) 7 - (i and 7)
-						set-module img x y black?
+						set-module img x y code-words/(i + 1) = #"1"
 						i: i + 1
 					]
 					j: j + 1
@@ -700,7 +695,7 @@ qrcode: context [
 		]
 	]
 
-	draw-white-func-modules: function [img [binary!] version [integer!]][
+	draw-white-func-modules: function [img [block!] version [integer!]][
 		qrsize: img/1
 		i: 7
 		;-- timing patterns
@@ -796,13 +791,13 @@ qrcode: context [
 		]
 	]
 
-	apply-mask: function [func-modules [binary!] mask-img [binary!] mask [integer!]][
-		qrsize: mask-img/1
+	apply-mask: function [mask-img [block!] img [block!] mask [integer!]][
+		qrsize: img/1
 		y: 0
 		while [y < qrsize][
 			x: 0
 			while [x < qrsize][
-				if get-module func-modules x y [x: x + 1 continue]
+				if get-module mask-img x y [x: x + 1 continue]
 				invert: true
 				switch mask [
 					0	[invert: (x + y % 2) = 0]
@@ -814,15 +809,15 @@ qrcode: context [
 					6	[invert: (x * y % 2 + (x * y % 3) % 2) = 0]
 					7	[invert: (x + y % 2 + (x * y % 3) % 2) = 0]
 				]
-				val:  get-module mask-img x y
-				set-module mask-img x y val xor invert
+				val: get-module img x y
+				set-module img x y val xor invert
 				x: x + 1
 			]
 			y: y + 1
 		]
 	]
 
-	draw-format-bits: function [ecl [word!] mask [integer!] img [binary!]][
+	draw-format-bits: function [ecl [word!] mask [integer!] img [block!]][
 		table: [L 1 M 0 Q 3 H 2]
 		data: table/(ecl) << 3 or mask
 		rem: data
@@ -862,13 +857,18 @@ qrcode: context [
 	PENALTY_N3: 40
 	PENALTY_N4: 10
 
-	get-penalty-score: function [img [binary!]][
+	get-penalty-score: function [img [block!]][
 		qrsize: img/1
 		res: 0.0
 		y: 0
+		run-history: make binary! 7
+		append/dup run-history 0 7
 		while [y < qrsize][
-			run-history: make binary! 7
-			append/dup run-history 0 7
+			hist: run-history
+			loop 7 [
+				hist/1: 0
+				hist: next hist
+			]
 			color: false
 			run-x: 0
 			x: 0
@@ -907,8 +907,11 @@ qrcode: context [
 
 		x: 0
 		while [x < qrsize][
-			run-history: make binary! 7
-			append/dup run-history 0 7
+			hist: run-history
+			loop 7 [
+				hist/1: 0
+				hist: next hist
+			]
 			color: false
 			run-y: 0
 			y: 0
@@ -1000,7 +1003,7 @@ qrcode: context [
 		][true][false]
 	]
 
-	to-image: function [img [binary!] scale [integer!]][
+	to-image: function [img [block!] scale [integer!]][
 		qrsize: img/1
 		len: qrsize * 3 * qrsize * 3
 		bin: make binary! len
@@ -1019,4 +1022,59 @@ qrcode: context [
 		]
 		make image! reduce [to pair! reduce [qrsize * scale qrsize * scale] bin]
 	]
+
+	encode-to-simple-image: function [
+		data [string! binary!]		"utf8 string! or binary!"
+		/correctLevel				"Error correction level (1 - 4)"
+		ecc [integer!]
+		/version					"QRCode version (1 - 40), min version"
+		ver  [integer!]
+	][
+		min-version: 1
+		max-version: 40
+		scale: 4
+		if version [
+			min-version: ver
+		]
+		ecc-int: 1 boost?: true
+		if correctLevel [
+			ecc-int: ecc
+			boost?: false
+		]
+		ecc-word: switch/default ecc-int [
+			1	['L]
+			2	['M]
+			3	['Q]
+			4	['H]
+		]['L]
+		unless seg: encode-data data max-version [
+			return none
+		]
+		unless img: encode-segments reduce [seg] ecc-word min-version max-version -1 boost? [
+			return none
+		]
+		to-image img scale
+	]
+
+	encode: function [
+		data [string! binary!]		"utf8 string! or binary!"
+		/correctLevel				"Error correction level (1 - 4)"
+		ecc [integer!]
+		/version					"QRCode version (1 - 40), min version"
+		ver  [integer!]
+		/image						"combine an image with the QRCode. The resulting image is black and white by default."
+		img  [image!]
+		/colorized					"make the resulting image colorized"
+		/vector						"generate DRAW commands (TDB)"
+		return: [image! block!]
+	][
+		
+	]
 ]
+
+;-- example
+;start: now/time/precise
+;test-image: qrcode/encode-to-simple-image/correctLevel "bitcoin:n4d8tkDrhF7PcDTPSuUckT927GHonewV7T" 3
+;end: now/time/precise
+;print [start end]
+;view [image test-image]
