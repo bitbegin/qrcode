@@ -203,8 +203,13 @@ qrcode: context [
 		][
 			bin: copy str
 		]
-		bin-len: length? bin
-		;-- TODO: len 0
+		if 0 = bin-len: length? bin [
+			return reduce [
+				'mode 'number
+				'num-chars bin-len
+				'data ""
+			]
+		]
 
 		;-- buffer len
 		buf-len: buffer-len? max-version
@@ -501,7 +506,6 @@ qrcode: context [
 		segs			[block!]
 		version			[integer!]
 	][
-		len: length? segs
 		res: 0
 		forall segs [
 			num-chars: segs/1/num-chars
