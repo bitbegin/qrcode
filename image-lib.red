@@ -118,4 +118,40 @@ image-lib: context [
 		]
 		make image! reduce [new-size bin]
 	]
+
+	grey2: function [img [image!]][
+		size: img/size
+		bin: make binary! size/x * size/y
+		y: 0
+		while [y < size/y][
+			x: 0
+			while [x < size/x][
+				p: y * size/x + x
+				append bin either 127 <= grey-pixel img/(p + 1) [#{FFFFFF}][#{000000}]
+				x: x + 1
+			]
+			y: y + 1
+		]
+		make image! reduce [size bin]
+	]
+
+	grey: function [img [image!]][
+		size: img/size
+		bin: make binary! size/x * size/y
+		y: 0
+		while [y < size/y][
+			x: 0
+			while [x < size/x][
+				p: y * size/x + x
+				append/dup bin grey-pixel img/(p + 1) 3
+				x: x + 1
+			]
+			y: y + 1
+		]
+		make image! reduce [size bin]
+	]
+
+	grey-pixel: function [p [tuple!]][
+		(p/1 * 299 / 1000) + (p/2 * 587 / 1000) + (p/3 * 114 / 1000)
+	]
 ]

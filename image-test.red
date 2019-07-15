@@ -1,9 +1,11 @@
 Red []
 #include %image-lib.red
 
-cloak: load %cloak.jpg
+cloak: load %o_fun.jpg
 new-image: copy cloak
 resize-img: copy cloak
+grey-img: image-lib/grey cloak
+grey2-img: image-lib/grey2 cloak
 view [
 	image cloak
 	img: image new-image
@@ -43,4 +45,7 @@ view [
 		resize-img: image-lib/resize resize-img make pair! reduce [size/x size/y - 5]
 		view [image cloak image resize-img]
 	]
+	return
+	image grey-img
+	image grey2-img
 ]
