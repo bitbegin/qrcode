@@ -74,4 +74,48 @@ image-lib: context [
 		]
 		np
 	]
+
+	;-- nearest
+	resize: function [img [image!] new-size [pair!]][
+		size: img/size
+		bin: make binary! new-size/x * new-size/y
+		scale-x: (to float! new-size/x) / size/x
+		scale-y: (to float! new-size/y) / size/y
+		i-scale-x: (to float! size/x) / new-size/x
+		i-scale-y: (to float! size/y) / new-size/y
+
+		x-offsets: make block! new-size/x
+		i: 0
+		while [i < new-size/x][
+			x-pos: to integer! i * i-scale-x
+			append x-offsets either x-pos < (size/x - 1) [
+				x-pos
+			][
+				size/x - 1
+			]
+			i: i + 1
+		]
+
+		y: 0
+		while [y < new-size/y][
+			t: to integer! y * i-scale-y
+			p: size/x * either t < (size/y - 1) [
+				t
+			][
+				size/y - 1
+			]
+			x: 0
+			while [x < new-size/x][
+				t2: x-offsets/(x + 1)
+				t3: t * size/x + t2 + 1
+				v: img/(t3)
+				append bin v/1
+				append bin v/2
+				append bin v/3
+				x: x + 1
+			]
+			y: y + 1
+		]
+		make image! reduce [new-size bin]
+	]
 ]
