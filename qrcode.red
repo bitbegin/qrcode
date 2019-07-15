@@ -1,6 +1,12 @@
 Red []
 
 qrcode: context [
+	system/catalog/errors/user: make system/catalog/errors/user [qrcode: ["qrcode [" :arg1 ": (" :arg2 " " :arg3 ")]"]]
+
+	new-error: func [name [word!] arg2 arg3][
+		cause-error 'user 'qrcode [name arg2 arg3]
+	]
+
 	buffer-len?: function [ver [integer!]][
 		temp: ver * 4 + 17
 		temp: temp * temp / 8 + 1
@@ -132,7 +138,9 @@ qrcode: context [
 				part: copy/part item 3
 				part-bin: to binary! to integer! part
 				part-str: enbase/base part-bin 2
-				if 10 > part-len: length? part-str [return none]
+				if 10 > part-len: length? part-str [
+					new-error 'encode-number 'part-len reduce [10 part-len]
+				]
 				begin: skip part-str part-len - 10
 				append bits copy/part begin 10
 				item: skip item 3
@@ -140,14 +148,18 @@ qrcode: context [
 				either len = 1 [
 					part-bin: to binary! to integer! item
 					part-str: enbase/base part-bin 2
-					if 4 > part-len: length? part-str [return none]
+					if 4 > part-len: length? part-str [
+						new-error 'encode-number 'part-len reduce [4 part-len]
+					]
 					begin: skip part-str part-len - 4
 					append bits copy/part begin 4
 					item: skip item 1
 				][
 					part-bin: to binary! to integer! item
 					part-str: enbase/base part-bin 2
-					if 7 > part-len: length? part-str [return none]
+					if 7 > part-len: length? part-str [
+						new-error 'encode-number 'part-len reduce [7 part-len]
+					]
 					begin: skip part-str part-len - 7
 					append bits copy/part begin 7
 					item: skip item 2
@@ -174,14 +186,18 @@ qrcode: context [
 			either len >= 2 [
 				part-bin: to binary! (item/1 * 45 + item/2)
 				part-str: enbase/base part-bin 2
-				if 11 > part-len: length? part-str [return none]
+				if 11 > part-len: length? part-str [
+					new-error 'encode-alphanumber 'part-len reduce [11 part-len]
+				]
 				begin: skip part-str part-len - 11
 				append bits copy/part begin 11
 				item: skip item 2
 			][
 				part-bin: to binary! item/1
 				part-str: enbase/base part-bin 2
-				if 6 > part-len: length? part-str [return none]
+				if 6 > part-len: length? part-str [
+					new-error 'encode-alphanumber 'part-len reduce [6 part-len]
+				]
 				begin: skip part-str part-len - 6
 				append bits copy/part begin 6
 				item: skip item 1
@@ -215,18 +231,30 @@ qrcode: context [
 		buf-len: buffer-len? max-version
 		case [
 			number-mode? str [
-				unless blen: get-segment-bits 'number bin-len [return none]
-				if ((blen + 7) / 8) > buf-len [return none]
+				unless blen: get-segment-bits 'number bin-len [
+					new-error 'get-segment-bits 'number bin-len
+				]
+				if ((blen + 7) / 8) > buf-len [
+					new-error 'encode-data 'buf-len buf-len
+				]
 				seg: encode-number str
 			]
 			alphanumber-mode? str [
-				unless blen: get-segment-bits 'alphanumber bin-len [return none]
-				if ((blen + 7) / 8) > buf-len [return none]
+				unless blen: get-segment-bits 'alphanumber bin-len [
+					new-error 'get-segment-bits 'alphanumber bin-len
+				]
+				if ((blen + 7) / 8) > buf-len [
+					new-error 'encode-data 'buf-len buf-len
+				]
 				seg: encode-alphanumber str
 			]
 			true [
-				if bin-len > buf-len [return none]
-				unless blen: get-segment-bits 'byte bin-len [return none]
+				if bin-len > buf-len [
+					new-error 'encode-data 'buf-len buf-len
+				]
+				unless blen: get-segment-bits 'byte bin-len [
+					new-error 'get-segment-bits 'byte bin-len
+				]
 				seg: reduce [
 					'mode 'byte
 					'num-chars bin-len
@@ -264,19 +292,23 @@ qrcode: context [
 			VERSION_MIN <= min-version
 			min-version <= max-version
 			max-version <= VERSION_MAX
-		][return none]
-		unless find error-group ecl [return none]
+		][new-error 'get-segments-info 'version "out of range"]
+		unless find error-group ecl [
+			new-error 'get-segments-info 'ecl ecl
+		]
 		version: min-version
 		forever [
 			cap-bits: 8 * get-data-code-words-bytes version ecl
 			unless used-bits: total-bits segs version [
-				return none
+				new-error 'get-segments-info 'used-bits reduce [segs version]
 			]
 			if all [
 				used-bits
 				used-bits <= cap-bits
 			][break]
-			if version >= max-version [return none]
+			if version >= max-version [
+				new-error 'get-segments-info 'version reduce [segs version]
+			]
 			version: version + 1
 		]
 		if boost-ecl? [
@@ -308,18 +340,14 @@ qrcode: context [
 		unless all [
 			mask >= -1
 			mask <= 7
-		][return none]
+		][new-error 'encode-segments 'mask mask]
 
 		sinfo: get-segments-info segs ecl min-version max-version boost-ecl?
 		version: sinfo/version
 		ecl: sinfo/ecl
-		unless data-str: build-data-code-words segs sinfo/used-bits version sinfo/cap-bytes [
-			return none
-		]
+		data-str: build-data-code-words segs sinfo/used-bits version sinfo/cap-bytes
 		data-bin: debase/base data-str 2
-		unless code-words: build-code-words-with-ecc data-bin sinfo/modules-bits sinfo/num-blocks sinfo/block-ecc-bytes sinfo/cap-bytes [
-			return none
-		]
+		code-words: build-code-words-with-ecc data-bin sinfo/modules-bits sinfo/num-blocks sinfo/block-ecc-bytes sinfo/cap-bytes
 		code-words-str: enbase/base code-words 2
 
 		;now start to draw
@@ -365,7 +393,9 @@ qrcode: context [
 			num-bits: num-char-bits mode version
 			part-bin: to binary! num-chars
 			part-str: enbase/base part-bin 2
-			if num-bits > part-len: length? part-str [return none]
+			if num-bits > part-len: length? part-str [
+				new-error 'build-data-code-words 'length reduce [num-bits part-len]
+			]
 			begin: skip part-str part-len - num-bits
 			append res rejoin [
 				select mode-indicators mode
@@ -373,9 +403,13 @@ qrcode: context [
 				segs/1/data
 			]
 		]
-		if used-bits <> (bit-len: length? res) [return none]
+		if used-bits <> (bit-len: length? res) [
+			new-error 'build-data-code-words 'used-bits reduce [used-bits bit-len]
+		]
 		cap-bits: cap-bytes * 8
-		if bit-len > cap-bits [return none]
+		if bit-len > cap-bits [
+			new-error 'build-data-code-words 'bit-len reduce [bit-len cap-bits]
+		]
 		if 4 < terminator-bits: cap-bits - bit-len [
 			terminator-bits: 4
 		]
@@ -386,9 +420,13 @@ qrcode: context [
 			append/dup res "0" 8 - m
 		]
 		bit-len: length? res
-		if 0 <> (bit-len % 8) [return none]
+		if 0 <> (bit-len % 8) [
+			new-error 'build-data-code-words 'bit-len bit-len
+		]
 		res-len: (length? res) / 8
-		if res-len > cap-bytes [return none]
+		if res-len > cap-bytes [
+			new-error 'build-data-code-words 'res-len reduce [res-len  cap-bytes]
+		]
 		if res-len = cap-bytes [return res]
 		pad-index: 1
 		loop cap-bytes - res-len [
@@ -446,7 +484,7 @@ qrcode: context [
 		unless all [
 			degree >= 1
 			degree <= REED_SOLOMON_DEGREE_MAX
-		][return none]
+		][new-error 'calc-reed-solomon-generator 'degree degree]
 		res: make binary! degree
 		append/dup res 0 degree
 		res/(degree): 1
@@ -473,7 +511,7 @@ qrcode: context [
 		unless all [
 			degree >= 1
 			degree <= REED_SOLOMON_DEGREE_MAX
-		][return none]
+		][new-error 'calc-reed-solomon-remainder 'degree degree]
 		res: make binary! degree
 		append/dup res 0 degree
 		i: 1
