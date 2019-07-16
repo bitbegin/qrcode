@@ -2,6 +2,7 @@ Red []
 #include %image-lib.red
 
 cloak: load %o_fun.jpg
+ext-image: image-lib/resize cloak make pair! reduce [cloak/size/x + 100 cloak/size/y + 100]
 new-image: copy cloak
 resize-img: copy cloak
 grey-img: image-lib/grey cloak
@@ -9,6 +10,7 @@ grey2-img: image-lib/grey2 cloak
 enlarge-img: image-lib/enlarge cloak 2x2
 view [
 	image cloak
+	image ext-image
 	img: image new-image
 	return
 	button "up brightness" [
