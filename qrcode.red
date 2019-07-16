@@ -1,5 +1,7 @@
 Red []
 
+#include %image-lib.red
+
 qrcode: context [
 	system/catalog/errors/user: make system/catalog/errors/user [qrcode: ["qrcode [" :arg1 ": (" :arg2 " " :arg3 ")]"]]
 
@@ -376,7 +378,7 @@ qrcode: context [
 		]
 		apply-mask mask-img img mask
 		draw-format-bits ecl mask img
-		img
+		repend sinfo ['mask mask 'image img]
 	]
 
 	build-data-code-words: function [
@@ -1065,12 +1067,132 @@ qrcode: context [
 		make image! reduce [to pair! reduce [qrsize * scale qrsize * scale] bin]
 	]
 
-	encode-to-simple-image: function [
+	combine: function [
+		ver [integer!]
+		qr-img [image!]
+		img [image!]
+		colorized? [logic!]
+		contrast [float! logic!]
+		brightness [integer! logic!]
+	][
+		bg0: img
+		if contrast [
+			bg0: image-lib/contrast-enhance bg0 contrast
+		]
+		if brightness [
+			bg0: image-lib/brightness-enhance bg0 brightness
+		]
+		qr-size: qr-img/size
+		bg0-size: bg0/size
+		print [qr-img/size bg0/size colorized?]
+		new-size: either bg0-size/x < bg0-size/y [
+			make pair! reduce [
+				qr-size/x - 24
+				qr-size/x - 24 * (bg0-size/y / bg0-size/x)
+			]
+		][
+			make pair! reduce [
+				qr-size/y - 24 * (bg0-size/x / bg0-size/y)
+				qr-size/y - 24
+			]
+		]
+		bg0: image-lib/resize bg0 new-size
+		print [qr-img/size bg0/size]
+		bg: either colorized? [
+			bg0
+		][
+			image-lib/grey2 bg0
+		]
+
+		aligns-pos: make block! 16
+		if ver > 1 [
+			aligns: get-align-pattern-pos ver
+			probe aligns
+			num-align: length? aligns
+			i: 0
+			while [i < num-align][
+				j: 0
+				while [j < num-align][
+					unless any [
+						all [
+							i = 0
+							j = 0
+						]
+						all [
+							i = 0
+							j = (num-align - 1)
+						]
+						all [
+							i = (num-align - 1)
+							j = 0
+						]
+					][
+						m: aligns/(i + 1) - 2
+						loop 5 [
+							n: aligns/(j + 1) - 2
+							loop 5 [
+								repend/only aligns-pos [m n]
+								n: n + 1
+							]
+							m: m + 1
+						]
+					]
+					j: j + 1
+				]
+				i: i + 1
+			]
+		]
+
+		i: 0
+		while [i < (qr-size/x - 24)][
+			j: 0
+			while [j < (qr-size/y - 24)][
+				unless any [
+					find [18 19 20] i
+					find [18 19 20] j
+					all [
+						i < 24
+						j < 24
+					]
+					all [
+						i < 24
+						j > (qr-size/y - 49)
+					]
+					all [
+						i > (qr-size/x - 49)
+						j < 24
+					]
+					find aligns-pos reduce [i j]
+					all [
+						i % 3 = 1
+						j % 3 = 1
+					]
+					FFh = pick bg0/(make pair! reduce [i + 1 j + 1]) 4
+				][
+					qr-img/(make pair! reduce [i + 13 j + 13]): bg/(make pair! reduce [i + 1 j + 1])
+				]
+				j: j + 1
+			]
+			i: i + 1
+		]
+		qr-img
+	]
+
+	encode: function [
 		data [string! binary!]		"utf8 string! or binary!"
 		/correctLevel				"Error correction level (1 - 4)"
-		ecc [integer!]
+			ecc [integer!]
 		/version					"QRCode version (1 - 40), min version"
-		ver  [integer!]
+			ver  [integer!]
+		/image						"combine an image with the QRCode. The resulting image is black and white by default."
+			img  [image!]
+		/colorized					"make the resulting image colorized"
+		/contrast
+			contrast-val [float!]
+		/brightness
+			brightness-val [float!]
+		/vector						"generate DRAW commands (TDB)"
+		return: [image! block!]
 	][
 		min-version: 1
 		max-version: 40
@@ -1089,34 +1211,17 @@ qrcode: context [
 			3	['Q]
 			4	['H]
 		]['L]
-		unless seg: encode-data data max-version [
-			return none
+		seg: encode-data data max-version
+		qr-info: encode-segments reduce [seg] ecc-word min-version max-version -1 boost?
+		qr-img: to-image qr-info/image scale
+		unless image [return qr-img]
+		if contrast [
+			contrast: contrast-val
 		]
-		unless img: encode-segments reduce [seg] ecc-word min-version max-version -1 boost? [
-			return none
+		if brightness [
+			brightness: brightness-val
 		]
-		to-image img scale
-	]
-
-	encode: function [
-		data [string! binary!]		"utf8 string! or binary!"
-		/correctLevel				"Error correction level (1 - 4)"
-		ecc [integer!]
-		/version					"QRCode version (1 - 40), min version"
-		ver  [integer!]
-		/image						"combine an image with the QRCode. The resulting image is black and white by default."
-		img  [image!]
-		/colorized					"make the resulting image colorized"
-		/vector						"generate DRAW commands (TDB)"
-		return: [image! block!]
-	][
-		
+		combine qr-info/version qr-img img colorized contrast brightness
 	]
 ]
 
-;-- example
-;start: now/time/precise
-;test-image: qrcode/encode-to-simple-image/correctLevel "bitcoin:n4d8tkDrhF7PcDTPSuUckT927GHonewV7T" 3
-;end: now/time/precise
-;print [start end]
-;view [image test-image]
