@@ -9,6 +9,8 @@ qrcode: context [
 		cause-error 'user 'qrcode [name arg2 arg3]
 	]
 
+	default-scale: 4x4
+
 	buffer-len?: function [ver [integer!]][
 		temp: ver * 4 + 17
 		temp: temp * temp / 8 + 1
@@ -1047,25 +1049,26 @@ qrcode: context [
 		][true][false]
 	]
 
-	to-image: function [img [block!] scale [integer!]][
+	gen-image: function [img [block!]][
 		qrsize: img/1
 		len: qrsize * 3 * qrsize * 3
 		bin: make binary! len
-		;append/dup bin 0 len
 		x: 0
 		while [x < qrsize][
 			y: 0
-			line: make binary! qrsize * 3 * scale
+			line: make binary! qrsize * 3
 			while [y < qrsize][
 				p: either get-module img x y [#{000000}][#{FFFFFF}]
-				append/dup line p scale
+				append line p
 				y: y + 1
 			]
-			append/dup bin line scale
+			append bin line
 			x: x + 1
 		]
-		make image! reduce [to pair! reduce [qrsize * scale qrsize * scale] bin]
+		make image! reduce [to pair! reduce [qrsize qrsize] bin]
 	]
+
+
 
 	combine: function [
 		ver [integer!]
@@ -1175,7 +1178,7 @@ qrcode: context [
 			]
 			i: i + 1
 		]
-		qr-img
+		image-lib/enlarge qr-img default-scale
 	]
 
 	encode: function [
@@ -1213,8 +1216,8 @@ qrcode: context [
 		]['L]
 		seg: encode-data data max-version
 		qr-info: encode-segments reduce [seg] ecc-word min-version max-version -1 boost?
-		qr-img: to-image qr-info/image scale
-		unless image [return qr-img]
+		qr-img: gen-image qr-info/image
+		unless image [return image-lib/enlarge qr-img default-scale]
 		if contrast [
 			contrast: contrast-val
 		]
