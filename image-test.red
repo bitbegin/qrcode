@@ -6,6 +6,7 @@ new-image: copy cloak
 resize-img: copy cloak
 grey-img: image-lib/grey cloak
 grey2-img: image-lib/grey2 cloak
+enlarge-img: image-lib/enlarge cloak 2x2
 view [
 	image cloak
 	img: image new-image
@@ -48,4 +49,6 @@ view [
 	return
 	image grey-img
 	image grey2-img
+	;return
+	image enlarge-img
 ]

@@ -1,7 +1,19 @@
 Red []
 
 image-lib: context [
+	system/catalog/errors/user: make system/catalog/errors/user [image-lib: ["image-lib [" :arg1 ": (" :arg2 " " :arg3 ")]"]]
+
+	new-error: func [name [word!] arg2 arg3][
+		cause-error 'user 'image-lib [name arg2 arg3]
+	]
+
 	contrast-enhance: function [img [image!] contrast [float!]][
+		if any [
+			contrast < 0
+			contrast > 2
+		][
+			new-error 'contrast-enhance 'contrast contrast
+		]
 		size: img/size
 		len: size/x * size/y
 		bin: make binary! len
@@ -39,6 +51,12 @@ image-lib: context [
 	]
 
 	brightness-enhance: function [img [image!] brightness [integer!]][
+		if any [
+			contrast < 0
+			contrast > 255
+		][
+			new-error 'brightness-enhance 'brightness brightness
+		]
 		size: img/size
 		len: size/x * size/y
 		bin: make binary! len
@@ -73,6 +91,38 @@ image-lib: context [
 			np > 255 [np: 255]
 		]
 		np
+	]
+
+	enlarge: function [img [image!] scale [pair!]][
+		size: img/size
+		if scale/x <= 0 [
+			new-error 'enlarge 'scale scale
+		]
+		if scale/y <= 0 [
+			new-error 'enlarge 'scale scale
+		]
+		if scale = 1x1 [return copy img]
+		width: size/x * scale/x
+		height: size/y * scale/y
+		len: width * height
+		bin: make binary! len
+		y: 0
+		while [y < size/y][
+			x: 0
+			line: make binary! width
+			while [x < size/x][
+				p: img/(make pair! reduce [x + 1 y + 1])
+				t: make binary! 3
+				append t p/1
+				append t p/2
+				append t p/3
+				append/dup line t scale/x
+				x: x + 1
+			]
+			append/dup bin line scale/y
+			y: y + 1
+		]
+		make image! reduce [to pair! reduce [width height] bin]
 	]
 
 	;-- nearest
