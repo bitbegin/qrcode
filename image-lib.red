@@ -52,8 +52,8 @@ image-lib: context [
 
 	brightness-enhance: function [img [image!] brightness [integer!]][
 		if any [
-			contrast < 0
-			contrast > 255
+			brightness < -255
+			brightness > 255
 		][
 			new-error 'brightness-enhance 'brightness brightness
 		]

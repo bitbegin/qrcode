@@ -9,7 +9,7 @@ qrcode: context [
 		cause-error 'user 'qrcode [name arg2 arg3]
 	]
 
-	default-scale: 4
+	default-scale: 3
 
 	buffer-len?: function [ver [integer!]][
 		temp: ver * 4 + 17
@@ -1088,7 +1088,7 @@ qrcode: context [
 		]
 		qr-size: qr-img/size
 		bg0-size: bg0/size
-		print [qr-img/size bg0/size colorized?]
+		;print [qr-img/size bg0/size colorized?]
 		new-size-x: either qr-size/x < either bg0-size/x < bg0-size/y [bg0-size/y][bg0-size/x][
 			qr-size/x
 		][
@@ -1108,7 +1108,7 @@ qrcode: context [
 		]
 		bg0: image-lib/resize bg0 new-size
 		bg0-offset: qr-size/x - bg0/size/x
-		print [qr-size bg0/size bg0-offset]
+		;print [qr-size bg0/size bg0-offset]
 
 		bg: either colorized? [
 			bg0
@@ -1155,6 +1155,15 @@ qrcode: context [
 			]
 		]
 
+		scale-mid: make block! scale
+		t: scale / 2
+		either scale % 2 = 0 [
+			append scale-mid t - 1
+			append scale-mid t
+		][
+			append scale-mid t
+		]
+
 		time-line: 6 * scale
 		time-lines: make block! scale
 		tl: time-line
@@ -1195,8 +1204,8 @@ qrcode: context [
 					]
 					find/only aligns-pos reduce [i j]
 					all [
-						i % scale = 1
-						j % scale = 1
+						find scale-mid i % scale
+						find scale-mid j % scale
 					]
 					all [
 						i >= bg0-offset
@@ -1231,7 +1240,7 @@ qrcode: context [
 		/contrast
 			contrast-val [float!]
 		/brightness
-			brightness-val [float!]
+			brightness-val [integer!]
 		/scale
 			scale-val [integer!]
 		/vector						"generate DRAW commands (TDB)"
@@ -1256,7 +1265,7 @@ qrcode: context [
 		seg: encode-data data max-version
 		qr-info: encode-segments reduce [seg] ecc-word min-version max-version -1 boost?
 		scale-num: either scale [
-			scale-val
+			either scale-val < default-scale [default-scale][scale-val]
 		][
 			default-scale
 		]
