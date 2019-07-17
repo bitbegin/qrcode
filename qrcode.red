@@ -1301,9 +1301,9 @@ qrcode: context [
 			ecc [integer!]
 		/version					"QRCode version (1 - 40), min version"
 			ver  [integer!]
-		/image						"combine an image with the QRCode. The resulting image is black and white by default."
+		/image						"combine an image with the QRCode"
 			img  [image!]
-		/colorized					"make the resulting image colorized"
+		/monochrome					"make the resulting image monochrome"
 		/embedded					"make the image embedded in the qrcode"
 		/contrast					"changes the contrast of the image (0 ~ 2.0), default 1.0"
 			contrast-val [float!]
@@ -1345,6 +1345,7 @@ qrcode: context [
 		if brightness [
 			brightness: brightness-val
 		]
+		colorized: not monochrome
 		either embedded [
 			embedded* qr-info/version qr-img img colorized contrast brightness scale-num
 		][
