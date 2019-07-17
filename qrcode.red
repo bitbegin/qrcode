@@ -1068,7 +1068,73 @@ qrcode: context [
 		make image! reduce [to pair! reduce [qrsize qrsize] bin]
 	]
 
+	embedded*: function [
+		ver [integer!]
+		qr-img [image!]
+		img [image!]
+		colorized? [logic!]
+		contrast [float! logic!]
+		brightness [integer! logic!]
+		scale [integer!]
+	][
+		if ver >= 7 [
+			new-error 'embedded 'version ver
+		]
+		bg0: img
+		if contrast [
+			bg0: image-lib/contrast-enhance bg0 contrast
+		]
+		if brightness [
+			bg0: image-lib/brightness-enhance bg0 brightness
+		]
+		qr-size: qr-img/size
+		bg0-size: bg0/size
+		;print [qr-img/size bg0/size colorized?]
+		new-size-x: either qr-size/x < (4 * either bg0-size/x < bg0-size/y [bg0-size/y][bg0-size/x])[
+			qr-size/x - 1 / 4
+		][
+			either bg0-size/x < bg0-size/y [bg0-size/y][bg0-size/x]
+		]
+		new-size: either bg0-size/x < bg0-size/y [
+			make pair! reduce [
+				new-size-x
+				new-size-x * (bg0-size/y / bg0-size/x)
+			]
+		][
+			make pair! reduce [
+				new-size-x * (bg0-size/x / bg0-size/y)
+				new-size-x
+			]
+		]
+		bg0: image-lib/resize bg0 new-size
+		bg0-offset: qr-size/x - bg0/size/x / 2
+		;print [qr-size bg0/size bg0-offset]
 
+		bg: either colorized? [
+			bg0
+		][
+			image-lib/grey2 bg0
+		]
+
+		i: 0
+		while [i < qr-size/x][
+			j: 0
+			while [j < qr-size/y][
+				if all [
+					i >= bg0-offset
+					j >= bg0-offset
+					i < (bg0/size/x + bg0-offset)
+					j < (bg0/size/x + bg0-offset)
+				][
+					qr-img/(make pair! reduce [i + 1 j + 1]):
+						bg/(make pair! reduce [i - bg0-offset + 1 j - bg0-offset + 1])
+				]
+				j: j + 1
+			]
+			i: i + 1
+		]
+		qr-img
+	]
 
 	combine: function [
 		ver [integer!]
@@ -1238,6 +1304,7 @@ qrcode: context [
 		/image						"combine an image with the QRCode. The resulting image is black and white by default."
 			img  [image!]
 		/colorized					"make the resulting image colorized"
+		/embedded					"make the image embedded in the qrcode"
 		/contrast
 			contrast-val [float!]
 		/brightness
@@ -1278,7 +1345,11 @@ qrcode: context [
 		if brightness [
 			brightness: brightness-val
 		]
-		combine qr-info/version qr-img img colorized contrast brightness scale-num
+		either embedded [
+			embedded* qr-info/version qr-img img colorized contrast brightness scale-num
+		][
+			combine qr-info/version qr-img img colorized contrast brightness scale-num
+		]
 	]
 ]
 
