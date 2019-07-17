@@ -75,15 +75,14 @@ FFFFFFFFFFFFFF000000000000000000000000000000FFFFFFFFFFFFFFFFFF00
 }]
 
 start: now/time/precise
-test-image: qrcode/encode/correctLevel/version/image/scale "bitcoin:n4d8tkDrhF7PcDTPSuUckT927GHonewV7T" 3 1 cloak 5
+test-image: qrcode-lib/encode/correctLevel/version/image/scale "bitcoin:n4d8tkDrhF7PcDTPSuUckT927GHonewV7T" 3 1 cloak 5
 end: now/time/precise
 print [start end]
 view [image test-image]
 
 start: now/time/precise
 cloak2: image-lib/enlarge cloak 2x2
-view [image cloak2]
-test-image: qrcode/encode/correctLevel/version/image/scale "bitcoin:n4d8tkDrhF7PcDTPSuUckT927GHonewV7T" 3 1 cloak2 5
+test-image: qrcode-lib/encode/correctLevel/version/image/scale "bitcoin:n4d8tkDrhF7PcDTPSuUckT927GHonewV7T" 3 1 cloak2 5
 end: now/time/precise
 print [start end]
 view [image test-image]

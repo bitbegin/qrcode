@@ -2,7 +2,7 @@ Red []
 
 #include %image-lib.red
 
-qrcode: context [
+qrcode-lib: context [
 	system/catalog/errors/user: make system/catalog/errors/user [qrcode: ["qrcode [" :arg1 ": (" :arg2 " " :arg3 ")]"]]
 
 	new-error: func [name [word!] arg2 arg3][
