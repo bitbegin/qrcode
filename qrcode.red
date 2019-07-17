@@ -1202,12 +1202,14 @@ qrcode: context [
 					all [
 						ver >= 7
 						any [
-							i < time-line
-							j >= (qr-size/y - loc-line - (3 * scale))
-						]
-						any [
-							i >= (qr-size/x - loc-line - (3 * scale))
-							j < time-line
+							all [
+								i < time-line
+								j >= (qr-size/y - loc-line - (3 * scale))
+							]
+							all [
+								i >= (qr-size/x - loc-line - (3 * scale))
+								j < time-line
+							]
 						]
 					]
 					find/only aligns-pos reduce [i j]
