@@ -318,7 +318,7 @@ qrcode: context [
 		if boost-ecl? [
 			ecls: [M Q H]
 			forall ecls [
-				if used-bits <= 8 * get-data-code-words-bytes version ecls/1 [
+				if used-bits <= (8 * get-data-code-words-bytes version ecls/1) [
 					ecl: ecls/1
 				]
 			]

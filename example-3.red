@@ -79,3 +79,12 @@ test-image: qrcode/encode/correctLevel/version/image/scale/colorized "bitcoin:n4
 end: now/time/precise
 print [start end]
 view [image test-image]
+
+start: now/time/precise
+cloak2: image-lib/enlarge cloak 2x2
+view [image cloak2]
+test-image: qrcode/encode/correctLevel/version/image/scale/colorized "bitcoin:n4d8tkDrhF7PcDTPSuUckT927GHonewV7T" 3 1 cloak2 5
+end: now/time/precise
+print [start end]
+view [image test-image]
+
