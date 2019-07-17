@@ -1305,11 +1305,11 @@ qrcode: context [
 			img  [image!]
 		/colorized					"make the resulting image colorized"
 		/embedded					"make the image embedded in the qrcode"
-		/contrast
+		/contrast					"changes the contrast of the image (0 ~ 2.0), default 1.0"
 			contrast-val [float!]
-		/brightness
+		/brightness					"changes the brightness of the image (-255 ~ 255), default 0"
 			brightness-val [integer!]
-		/scale
+		/scale						"every point use how many pixels"
 			scale-val [integer!]
 		/vector						"generate DRAW commands (TDB)"
 		return: [image! block!]
