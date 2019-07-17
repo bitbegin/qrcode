@@ -537,7 +537,7 @@ qrcode-lib: context [
 		z: 0
 		i: 7
 		while [i >= 0][
-			z: (z << 1 and FFh) xor ((z >> 7) * 11Dh and FFh)
+			z: (z << 1 and FFh) xor ((z >> 7) * 011Dh and FFh)
 			z: z xor ((y >> i and 1) * x)
 			i: i - 1
 		]
