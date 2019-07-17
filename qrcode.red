@@ -9,7 +9,7 @@ qrcode: context [
 		cause-error 'user 'qrcode [name arg2 arg3]
 	]
 
-	default-scale: 4x4
+	default-scale: 4
 
 	buffer-len?: function [ver [integer!]][
 		temp: ver * 4 + 17
@@ -1077,6 +1077,7 @@ qrcode: context [
 		colorized? [logic!]
 		contrast [float! logic!]
 		brightness [integer! logic!]
+		scale [integer!]
 	][
 		bg0: img
 		if contrast [
@@ -1088,19 +1089,27 @@ qrcode: context [
 		qr-size: qr-img/size
 		bg0-size: bg0/size
 		print [qr-img/size bg0/size colorized?]
+		new-size-x: either qr-size/x < either bg0-size/x < bg0-size/y [bg0-size/y][bg0-size/x][
+			qr-size/x
+		][
+			either bg0-size/x < bg0-size/y [bg0-size/y][bg0-size/x]
+		]
+		
 		new-size: either bg0-size/x < bg0-size/y [
 			make pair! reduce [
-				qr-size/x - 24
-				qr-size/x - 24 * (bg0-size/y / bg0-size/x)
+				new-size-x
+				new-size-x * (bg0-size/y / bg0-size/x)
 			]
 		][
 			make pair! reduce [
-				qr-size/y - 24 * (bg0-size/x / bg0-size/y)
-				qr-size/y - 24
+				new-size-x * (bg0-size/x / bg0-size/y)
+				new-size-x
 			]
 		]
 		bg0: image-lib/resize bg0 new-size
-		print [qr-img/size bg0/size]
+		bg0-offset: qr-size/x - bg0/size/x
+		print [qr-size bg0/size bg0-offset]
+
 		bg: either colorized? [
 			bg0
 		][
@@ -1130,10 +1139,10 @@ qrcode: context [
 							j = 0
 						]
 					][
-						m: aligns/(i + 1) - 2
-						loop 5 [
-							n: aligns/(j + 1) - 2
-							loop 5 [
+						m: aligns/(i + 1) - 2 * scale
+						loop 5 * scale [
+							n: aligns/(j + 1) - 2 * scale
+							loop 5 * scale [
 								repend/only aligns-pos [m n]
 								n: n + 1
 							]
@@ -1146,39 +1155,68 @@ qrcode: context [
 			]
 		]
 
+		time-line: 6 * scale
+		time-lines: make block! scale
+		tl: time-line
+		loop scale [
+			append time-lines tl
+			tl: tl + 1
+		]
+		loc-line: 8 * scale
 		i: 0
-		while [i < (qr-size/x - 24)][
+		while [i < qr-size/x][
 			j: 0
-			while [j < (qr-size/y - 24)][
+			while [j < qr-size/y][
 				unless any [
-					find [18 19 20] i
-					find [18 19 20] j
+					find time-lines i
+					find time-lines j
 					all [
-						i < 24
-						j < 24
+						i < loc-line
+						j < loc-line
 					]
 					all [
-						i < 24
-						j > (qr-size/y - 49)
+						i < loc-line
+						j >= (qr-size/y - loc-line)
 					]
 					all [
-						i > (qr-size/x - 49)
-						j < 24
+						i >= (qr-size/x - loc-line)
+						j < loc-line
 					]
-					find aligns-pos reduce [i j]
 					all [
-						i % 3 = 1
-						j % 3 = 1
+						ver >= 7
+						any [
+							i < time-line
+							j >= (qr-size/y - loc-line - (3 * scale))
+						]
+						any [
+							i >= (qr-size/x - loc-line - (3 * scale))
+							j < time-line
+						]
 					]
-					FFh = pick bg0/(make pair! reduce [i + 1 j + 1]) 4
+					find/only aligns-pos reduce [i j]
+					all [
+						i % scale = 1
+						j % scale = 1
+					]
+					all [
+						i >= bg0-offset
+						j >= bg0-offset
+						FFh = pick bg0/(make pair! reduce [i - bg0-offset + 1  j - bg0-offset + 1]) 4
+					]
 				][
-					qr-img/(make pair! reduce [i + 13 j + 13]): bg/(make pair! reduce [i + 1 j + 1])
+					if all [
+						i >= bg0-offset
+						j >= bg0-offset
+					][
+						qr-img/(make pair! reduce [i + 1 j + 1]):
+							bg/(make pair! reduce [i - bg0-offset + 1 j - bg0-offset + 1])
+					]
 				]
 				j: j + 1
 			]
 			i: i + 1
 		]
-		image-lib/enlarge qr-img default-scale
+		qr-img
 	]
 
 	encode: function [
@@ -1194,12 +1232,13 @@ qrcode: context [
 			contrast-val [float!]
 		/brightness
 			brightness-val [float!]
+		/scale
+			scale-val [integer!]
 		/vector						"generate DRAW commands (TDB)"
 		return: [image! block!]
 	][
 		min-version: 1
 		max-version: 40
-		scale: 4
 		if version [
 			min-version: ver
 		]
@@ -1216,15 +1255,20 @@ qrcode: context [
 		]['L]
 		seg: encode-data data max-version
 		qr-info: encode-segments reduce [seg] ecc-word min-version max-version -1 boost?
-		qr-img: gen-image qr-info/image
-		unless image [return image-lib/enlarge qr-img default-scale]
+		scale-num: either scale [
+			scale-val
+		][
+			default-scale
+		]
+		qr-img: image-lib/enlarge gen-image qr-info/image make pair! reduce [scale-num scale-num]
+		unless image [return qr-img]
 		if contrast [
 			contrast: contrast-val
 		]
 		if brightness [
 			brightness: brightness-val
 		]
-		combine qr-info/version qr-img img colorized contrast brightness
+		combine qr-info/version qr-img img colorized contrast brightness scale-num
 	]
 ]
 

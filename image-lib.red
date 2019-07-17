@@ -128,6 +128,7 @@ image-lib: context [
 	;-- nearest
 	resize: function [img [image!] new-size [pair!]][
 		size: img/size
+		if size = new-size [return copy imgg]
 		bin: make binary! new-size/x * new-size/y
 		scale-x: (to float! new-size/x) / size/x
 		scale-y: (to float! new-size/y) / size/y
