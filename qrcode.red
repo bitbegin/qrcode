@@ -1107,7 +1107,7 @@ qrcode: context [
 			]
 		]
 		bg0: image-lib/resize bg0 new-size
-		bg0-offset: qr-size/x - bg0/size/x
+		bg0-offset: qr-size/x - bg0/size/x / 2
 		;print [qr-size bg0/size bg0-offset]
 
 		bg: either colorized? [
@@ -1175,6 +1175,15 @@ qrcode: context [
 		while [i < qr-size/x][
 			j: 0
 			while [j < qr-size/y][
+				unless all [
+					i >= bg0-offset
+					j >= bg0-offset
+					i < (bg0/size/x + bg0-offset)
+					j < (bg0/size/x + bg0-offset)
+				][
+					j: j + 1
+					continue
+				]
 				unless any [
 					find time-lines i
 					find time-lines j
@@ -1206,19 +1215,10 @@ qrcode: context [
 						find scale-mid i % scale
 						find scale-mid j % scale
 					]
-					all [
-						i >= bg0-offset
-						j >= bg0-offset
-						FFh = pick bg0/(make pair! reduce [i - bg0-offset + 1  j - bg0-offset + 1]) 4
-					]
+					FFh = pick bg0/(make pair! reduce [i - bg0-offset + 1 j - bg0-offset + 1]) 4
 				][
-					if all [
-						i >= bg0-offset
-						j >= bg0-offset
-					][
-						qr-img/(make pair! reduce [i + 1 j + 1]):
-							bg/(make pair! reduce [i - bg0-offset + 1 j - bg0-offset + 1])
-					]
+					qr-img/(make pair! reduce [i + 1 j + 1]):
+						bg/(make pair! reduce [i - bg0-offset + 1 j - bg0-offset + 1])
 				]
 				j: j + 1
 			]
