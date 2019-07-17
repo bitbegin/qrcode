@@ -16,7 +16,6 @@ end: now/time/precise
 print [start end]
 view [image test-image]
 
-cloak: load %o_fun.jpg
 start: now/time/precise
 test-image: qrcode/encode/correctLevel/version/image/scale "bitcoin:n4d8tkDrhF7PcDTPSuUckT927GHonewV7T" 3 1 cloak 5
 end: now/time/precise

@@ -1119,7 +1119,6 @@ qrcode: context [
 		aligns-pos: make block! 16
 		if ver > 1 [
 			aligns: get-align-pattern-pos ver
-			probe aligns
 			num-align: length? aligns
 			i: 0
 			while [i < num-align][
