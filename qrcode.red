@@ -1049,7 +1049,14 @@ qrcode-lib: context [
 		][true][false]
 	]
 
-	gen-image: function [img [block!]][
+	gen-image: function [img [block!] color [logic! tuple!]][
+		fg: #{000000}
+		if color [
+			fg: make binary! 3
+			append fg color/1
+			append fg color/2
+			append fg color/3
+		]
 		qrsize: img/1
 		len: qrsize * 3 * qrsize * 3
 		bin: make binary! len
@@ -1058,7 +1065,7 @@ qrcode-lib: context [
 			y: 0
 			line: make binary! qrsize * 3
 			while [y < qrsize][
-				p: either get-module img x y [#{000000}][#{FFFFFF}]
+				p: either get-module img x y [fg][#{FFFFFF}]
 				append line p
 				y: y + 1
 			]
@@ -1300,9 +1307,11 @@ qrcode-lib: context [
 		/correctLevel				"Error correction level (1 - 4)"
 			ecc [integer!]
 		/version					"QRCode version (1 - 40), min version"
-			ver  [integer!]
+			ver [integer!]
+		/color
+			clr [tuple!]
 		/image						"combine an image with the QRCode"
-			img  [image!]
+			img [image!]
 		/monochrome					"make the resulting image monochrome"
 		/embedded					"make the image embedded in the qrcode"
 		/contrast					"changes the contrast of the image (0 ~ 2.0), default 1.0"
@@ -1337,7 +1346,11 @@ qrcode-lib: context [
 		][
 			default-scale
 		]
-		qr-img: image-lib/enlarge gen-image qr-info/image make pair! reduce [scale-num scale-num]
+		if color [
+			color: clr
+		]
+		qr-img0: gen-image qr-info/image color
+		qr-img: image-lib/enlarge qr-img0 make pair! reduce [scale-num scale-num]
 		unless image [return qr-img]
 		if contrast [
 			contrast: contrast-val
@@ -1351,6 +1364,21 @@ qrcode-lib: context [
 		][
 			combine qr-info/version qr-img img colorized contrast brightness scale-num
 		]
+	]
+
+	set 'qrcode function [
+		text [string! url!]     ;-- text or url
+		/correctLevel           ;-- Error correction level (1 - 4)
+			ecc [integer!]
+		/version                ;-- QRCode version (1 - 40)
+			ver  [integer!]
+		/image                  ;-- combine an image with the QRCode.
+			img  [image!]
+		/color
+			clr  [tuple!]       ;-- foreground color
+		return: [image!]
+	][
+
 	]
 ]
 
