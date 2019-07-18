@@ -1358,15 +1358,17 @@ qrcode-lib: context [
 	]
 
 	set 'qrcode function [
-		text [string! url!]     ;-- text or url
-		/correctLevel           ;-- Error correction level (1 - 4)
+		text [string! url!]			"text or url"
+		/correctLevel				"Error correction level (1 - 4)"
 			ecc [integer!]
-		/version                ;-- QRCode version (1 - 40)
-			ver  [integer!]
-		/image                  ;-- combine an image with the QRCode.
-			img  [image!]
+		/version					"QRCode version (1 - 40)"
+			ver [integer!]
+		/image						"combine an image with the QRCode."
+			img [image!]
 		/color
-			clr  [tuple!]       ;-- foreground color
+			clr [tuple!]			"foreground color"
+		/scale						"every point use how many pixels"
+			scale-val [integer!]
 		return: [image!]
 	][
 		min-version: 1
@@ -1382,8 +1384,8 @@ qrcode-lib: context [
 		ecc-word: any [pick [L M Q H] ecc-int 'L]
 		seg: encode-data to string! text max-version
 		qr-info: encode-segments reduce [seg] ecc-word min-version max-version -1 boost?
-		scale-num: either qr-info/version < 7 [
-			9
+		scale-num: either scale [
+			either scale-val < default-scale [default-scale][scale-val]
 		][
 			default-scale
 		]
@@ -1393,8 +1395,6 @@ qrcode-lib: context [
 		qr-img0: gen-image qr-info/image color
 		qr-img: image-lib/enlarge qr-img0 as-pair scale-num scale-num
 		unless image [return qr-img]
-		probe qr-img/size
-		probe img/size
 		either all [
 			qr-info/version < 7
 			qr-img/size/x >= (4 * either img/size/x < img/size/y [img/size/y][img/size/x])
