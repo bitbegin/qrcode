@@ -1378,7 +1378,45 @@ qrcode-lib: context [
 			clr  [tuple!]       ;-- foreground color
 		return: [image!]
 	][
-
+		min-version: 1
+		max-version: 40
+		if version [
+			min-version: ver
+		]
+		ecc-int: 1 boost?: true
+		if correctLevel [
+			ecc-int: ecc
+			boost?: false
+		]
+		ecc-word: switch/default ecc-int [
+			1	['L]
+			2	['M]
+			3	['Q]
+			4	['H]
+		]['L]
+		seg: encode-data to string! text max-version
+		qr-info: encode-segments reduce [seg] ecc-word min-version max-version -1 boost?
+		scale-num: either qr-info/version < 7 [
+			9
+		][
+			default-scale
+		]
+		if color [
+			color: clr
+		]
+		qr-img0: gen-image qr-info/image color
+		qr-img: image-lib/enlarge qr-img0 make pair! reduce [scale-num scale-num]
+		unless image [return qr-img]
+		probe qr-img/size
+		probe img/size
+		either all [
+			qr-info/version < 7
+			qr-img/size/x >= (4 * either img/size/x < img/size/y [img/size/y][img/size/x])
+		][
+			embedded* qr-info/version qr-img img yes no no scale-num
+		][
+			combine qr-info/version qr-img img yes no no scale-num
+		]
 	]
 ]
 
