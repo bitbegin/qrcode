@@ -111,7 +111,7 @@ image-lib: context [
 			x: 0
 			line: make binary! width
 			while [x < size/x][
-				p: img/(make pair! reduce [x + 1 y + 1])
+				p: img/(as-pair x + 1 y + 1)
 				t: make binary! 3
 				append t p/1
 				append t p/2

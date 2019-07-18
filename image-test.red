@@ -2,7 +2,7 @@ Red []
 #include %image-lib.red
 
 cloak: load %o_fun.jpg
-ext-image: image-lib/resize cloak make pair! reduce [cloak/size/x + 100 cloak/size/y + 100]
+ext-image: image-lib/resize cloak as-pair cloak/size/x + 100 cloak/size/y + 100
 new-image: copy cloak
 resize-img: copy cloak
 grey-img: image-lib/grey cloak
@@ -30,22 +30,22 @@ view [
 
 	button "up width" [
 		size: resize-img/size
-		resize-img: image-lib/resize resize-img make pair! reduce [size/x + 5 size/y]
+		resize-img: image-lib/resize resize-img as-pair size/x + 5 size/y
 		view [image cloak image resize-img]
 	]
 	button "down width" [
 		size: resize-img/size
-		resize-img: image-lib/resize resize-img make pair! reduce [size/x - 5 size/y]
+		resize-img: image-lib/resize resize-img as-pair size/x - 5 size/y
 		view [image cloak image resize-img]
 	]
 	button "up height" [
 		size: resize-img/size
-		resize-img: image-lib/resize resize-img make pair! reduce [size/x size/y + 5]
+		resize-img: image-lib/resize resize-img as-pair size/x size/y + 5
 		view [image cloak image resize-img]
 	]
 	button "down height" [
 		size: resize-img/size
-		resize-img: image-lib/resize resize-img make pair! reduce [size/x size/y - 5]
+		resize-img: image-lib/resize resize-img as-pair size/x size/y - 5
 		view [image cloak image resize-img]
 	]
 	return

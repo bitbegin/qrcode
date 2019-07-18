@@ -1103,15 +1103,13 @@ qrcode-lib: context [
 			either bg0-size/x < bg0-size/y [bg0-size/y][bg0-size/x]
 		]
 		new-size: either bg0-size/x < bg0-size/y [
-			make pair! reduce [
+			as-pair
 				new-size-x
 				new-size-x * (bg0-size/y / bg0-size/x)
-			]
 		][
-			make pair! reduce [
+			as-pair
 				new-size-x * (bg0-size/x / bg0-size/y)
 				new-size-x
-			]
 		]
 		bg0: image-lib/resize bg0 new-size
 		bg0-offset: qr-size/x - bg0/size/x / 2
@@ -1133,8 +1131,8 @@ qrcode-lib: context [
 					i < (bg0/size/x + bg0-offset)
 					j < (bg0/size/x + bg0-offset)
 				][
-					qr-img/(make pair! reduce [i + 1 j + 1]):
-						bg/(make pair! reduce [i - bg0-offset + 1 j - bg0-offset + 1])
+					qr-img/(as-pair i + 1 j + 1):
+						bg/(as-pair i - bg0-offset + 1 j - bg0-offset + 1)
 				]
 				j: j + 1
 			]
@@ -1169,15 +1167,13 @@ qrcode-lib: context [
 		]
 		
 		new-size: either bg0-size/x < bg0-size/y [
-			make pair! reduce [
+			as-pair
 				new-size-x
 				new-size-x * (bg0-size/y / bg0-size/x)
-			]
 		][
-			make pair! reduce [
+			as-pair
 				new-size-x * (bg0-size/x / bg0-size/y)
 				new-size-x
-			]
 		]
 		bg0: image-lib/resize bg0 new-size
 		bg0-offset: qr-size/x - bg0/size/x / 2
@@ -1290,10 +1286,10 @@ qrcode-lib: context [
 						find scale-mid i % scale
 						find scale-mid j % scale
 					]
-					FFh = pick bg0/(make pair! reduce [i - bg0-offset + 1 j - bg0-offset + 1]) 4
+					FFh = pick bg0/(as-pair i - bg0-offset + 1 j - bg0-offset + 1) 4
 				][
-					qr-img/(make pair! reduce [i + 1 j + 1]):
-						bg/(make pair! reduce [i - bg0-offset + 1 j - bg0-offset + 1])
+					qr-img/(as-pair i + 1 j + 1):
+						bg/(as-pair i - bg0-offset + 1 j - bg0-offset + 1)
 				]
 				j: j + 1
 			]
@@ -1333,12 +1329,7 @@ qrcode-lib: context [
 			ecc-int: ecc
 			boost?: false
 		]
-		ecc-word: switch/default ecc-int [
-			1	['L]
-			2	['M]
-			3	['Q]
-			4	['H]
-		]['L]
+		ecc-word: any [pick [L M Q H] ecc-int 'L]
 		seg: encode-data data max-version
 		qr-info: encode-segments reduce [seg] ecc-word min-version max-version -1 boost?
 		scale-num: either scale [
@@ -1350,7 +1341,7 @@ qrcode-lib: context [
 			color: clr
 		]
 		qr-img0: gen-image qr-info/image color
-		qr-img: image-lib/enlarge qr-img0 make pair! reduce [scale-num scale-num]
+		qr-img: image-lib/enlarge qr-img0 as-pair scale-num scale-num
 		unless image [return qr-img]
 		if contrast [
 			contrast: contrast-val
@@ -1388,12 +1379,7 @@ qrcode-lib: context [
 			ecc-int: ecc
 			boost?: false
 		]
-		ecc-word: switch/default ecc-int [
-			1	['L]
-			2	['M]
-			3	['Q]
-			4	['H]
-		]['L]
+		ecc-word: any [pick [L M Q H] ecc-int 'L]
 		seg: encode-data to string! text max-version
 		qr-info: encode-segments reduce [seg] ecc-word min-version max-version -1 boost?
 		scale-num: either qr-info/version < 7 [
@@ -1405,7 +1391,7 @@ qrcode-lib: context [
 			color: clr
 		]
 		qr-img0: gen-image qr-info/image color
-		qr-img: image-lib/enlarge qr-img0 make pair! reduce [scale-num scale-num]
+		qr-img: image-lib/enlarge qr-img0 as-pair scale-num scale-num
 		unless image [return qr-img]
 		probe qr-img/size
 		probe img/size
