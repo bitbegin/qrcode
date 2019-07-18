@@ -26,7 +26,7 @@ testFiniteFieldMultiply: function [][
 		FFh FFh E2h
 	]
 	while [not tail? cases][
-		if cases/3 <> qrcode/finite-field-multiply cases/1 cases/2 [
+		if cases/3 <> qrcode-lib/finite-field-multiply cases/1 cases/2 [
 			new-error 'testFiniteFieldMultiply cases/3 reduce [cases/1 cases/2]
 		]
 		cases: skip cases 3
@@ -43,19 +43,19 @@ either error? e: try [testFiniteFieldMultiply][
 
 testCalcReedSolomonGenerator: function [][
 	test-mode: pick [none encode ecc] 3
-	generator: qrcode/calc-reed-solomon-generator 1
+	generator: qrcode-lib/calc-reed-solomon-generator 1
 	unless generator = c: #{01} [
 		new-error 'testCalcReedSolomonGenerator 1 reduce [generator c]
 	]
-	generator: qrcode/calc-reed-solomon-generator 2
+	generator: qrcode-lib/calc-reed-solomon-generator 2
 	unless generator = c: #{0302} [
 		new-error 'testCalcReedSolomonGenerator 2 reduce [generator c]
 	]
-	generator: qrcode/calc-reed-solomon-generator 5
+	generator: qrcode-lib/calc-reed-solomon-generator 5
 	unless generator = c: #{1FC63F9374} [
 		new-error 'testCalcReedSolomonGenerator 5 reduce [generator c]
 	]
-	generator: qrcode/calc-reed-solomon-generator 30
+	generator: qrcode-lib/calc-reed-solomon-generator 30
 	unless all [
 		generator/1 = D4h
 		generator/2 = F6h
@@ -79,23 +79,23 @@ either error? e: try [testCalcReedSolomonGenerator][
 ]
 
 testCalcReedSolomonRemainder: function [][
-	generator: qrcode/calc-reed-solomon-generator 3
-	remainder: qrcode/calc-reed-solomon-remainder #{00} 0 generator
+	generator: qrcode-lib/calc-reed-solomon-generator 3
+	remainder: qrcode-lib/calc-reed-solomon-remainder #{00} 0 generator
 	unless remainder = c: #{000000} [
 		new-error 'testCalcReedSolomonRemainder 3 reduce [remainder c]
 	]
-	generator: qrcode/calc-reed-solomon-generator 4
-	remainder: qrcode/calc-reed-solomon-remainder #{0001} 2 generator
+	generator: qrcode-lib/calc-reed-solomon-generator 4
+	remainder: qrcode-lib/calc-reed-solomon-remainder #{0001} 2 generator
 	unless remainder = c: generator [
 		new-error 'testCalcReedSolomonRemainder 4 reduce [remainder c]
 	]
-	generator: qrcode/calc-reed-solomon-generator 5
-	remainder: qrcode/calc-reed-solomon-remainder #{033A6012C7} 5 generator
+	generator: qrcode-lib/calc-reed-solomon-generator 5
+	remainder: qrcode-lib/calc-reed-solomon-remainder #{033A6012C7} 5 generator
 	unless remainder = c: #{CB3616FA9D} [
 		new-error 'testCalcReedSolomonRemainder 5 reduce [remainder c]
 	]
-	generator: qrcode/calc-reed-solomon-generator 30
-	remainder: qrcode/calc-reed-solomon-remainder #{3871DBF9D728F68EFE5EE67D7DB2A558BC28235314D561C0206CDEDEFC79B08B786B49D01AADF3EF527D9A} 43 generator
+	generator: qrcode-lib/calc-reed-solomon-generator 30
+	remainder: qrcode-lib/calc-reed-solomon-remainder #{3871DBF9D728F68EFE5EE67D7DB2A558BC28235314D561C0206CDEDEFC79B08B786B49D01AADF3EF527D9A} 43 generator
 	unless all [
 		remainder/1 = CEh
 		remainder/2 = F0h
@@ -129,14 +129,14 @@ encode-and-build: function [
 	mask			[integer!]
 	boost-ecl?		[logic!]
 ][
-	unless seg: qrcode/encode-data str max-version [
+	unless seg: qrcode-lib/encode-data str max-version [
 		return none
 	]
 	segs: reduce [seg]
-	sinfo: qrcode/get-segments-info segs ecl min-version max-version boost-ecl?
+	sinfo: qrcode-lib/get-segments-info segs ecl min-version max-version boost-ecl?
 	version: sinfo/version
 	ecl: sinfo/ecl
-	unless data-str: qrcode/build-data-code-words segs sinfo/used-bits version sinfo/cap-bytes [
+	unless data-str: qrcode-lib/build-data-code-words segs sinfo/used-bits version sinfo/cap-bytes [
 		return none
 	]
 	data-str
@@ -168,8 +168,8 @@ either error? e: try [testEncodeData][
 testEcc: function [][
 	d: "0100001101010101010001101000011001010111001001100101010111000010011101110011001000000110000100100000011001100111001001101111011011110110010000100000011101110110100001101111001000000111001001100101011000010110110001101100011110010010000001101011011011100110111101110111011100110010000001110111011010000110010101110010011001010010000001101000011010010111001100100000011101000110111101110111011001010110110000100000011010010111001100100001000011101100000100011110110000010001111011000001000111101100"
 	h: debase/base d 2
-	vinfo: qrcode/get-version-info 5 'Q
-	result: qrcode/build-code-words-with-ecc h vinfo/modules-bits vinfo/num-blocks vinfo/block-ecc-bytes vinfo/cap-bytes
+	vinfo: qrcode-lib/get-version-info 5 'Q
+	result: qrcode-lib/build-code-words-with-ecc h vinfo/modules-bits vinfo/num-blocks vinfo/block-ecc-bytes vinfo/cap-bytes
 	ri: [67 246 182 70 85 246 230 247 70 66 247 118 134 7 119 86 87 118 50 194 38 134 7 6 85 242 118 151 194 7 134 50 119 38 87 16 50 86 38 236 6 22 82 17 18 198 6 236 6 199 134 17 103 146 151 236 38 6 50 17 7 236 213 87 148 235 199 204 116 159 11 96 177 5 45 60 212 173 115 202 76 24 247 182 133 147 241 124 75 59 223 157 242 33 229 200 238 106 248 134 76 40 154 27 195 255 117 129 230 172 154 209 189 82 111 17 10 2 86 163 108 131 161 163 240 32 111 120 192 178 39 133 141 236]
 	len: length? ri
 	rb: make binary! len
