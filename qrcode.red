@@ -1052,7 +1052,7 @@ qrcode-lib: context [
 	gen-image: function [img [block!] color [logic! tuple!]][
 		fg: #{000000}
 		if color [
-			fg: make binary! 3
+			clear fg
 			append fg color/1
 			append fg color/2
 			append fg color/3
@@ -1063,16 +1063,14 @@ qrcode-lib: context [
 		x: 0
 		while [x < qrsize][
 			y: 0
-			line: make binary! qrsize * 3
 			while [y < qrsize][
 				p: either get-module img x y [fg][#{FFFFFF}]
-				append line p
+				append bin p
 				y: y + 1
 			]
-			append bin line
 			x: x + 1
 		]
-		make image! reduce [to pair! reduce [qrsize qrsize] bin]
+		make image! reduce [as-pair qrsize qrsize bin]
 	]
 
 	embedded*: function [

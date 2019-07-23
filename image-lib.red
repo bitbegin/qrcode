@@ -122,7 +122,7 @@ image-lib: context [
 			append/dup bin line scale/y
 			y: y + 1
 		]
-		make image! reduce [to pair! reduce [width height] bin]
+		make image! reduce [as-pair width height bin]
 	]
 
 	;-- nearest
